@@ -1,133 +1,48 @@
-ace.define("ace/mode/michelson_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module) {
-"use strict";
+/* Copyright 2017 Dan Robinson. Released under the MIT License (https://choosealicense.com/licenses/mit/) */
 
-var oop = require("../lib/oop");
-var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
+ace.define("ace/mode/michelson_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(acequire, exports, module) {
+
+var oop = acequire("../lib/oop");
+var TextHighlightRules = acequire("./text_highlight_rules").TextHighlightRules;
 
 var MichelsonHighlightRules = function() {
-    var keywordMapper = this.createKeywordMapper({
-       "keyword": "timestamp|signature|or|contract|lambda|option|list|set|map|False|True|parameter|storage|return|" +
-          "unit|DROP|DIP|PAIR|string|TRANSFER_TOKENS|code|DUP|CAR|CDR|ADD|nat|tez|bool|key|pair|Unit|Item|Pair|" +
-        "Some|None|List|SWAP|LEFT|RIGHT|IF_LEFT|NIL|CONS|IF_CONS|MAP|REDUCE|EMPTY_SET|MAP|REDUCE|MEM|UPDATE|EMPTY_MAP|" +
-        "GET|UPDATE|IF|LOOP|LAMBDA|EXEC|FAIL|CONCAT|SUB|MUL|OR|AND|XOR|NOT|ABS|INT|NEG|EDIV|LSL|LSR|COMPARE|EQ|NEQ|LT|GT|LE|GE|" +
-        "MANAGER|CREATE_ACCOUNT|DEFAULT_ACCOUNT|CREATE_CONTRACT|NOW|AMOUNT|BALANCE|CHECK_SIGNATURE|H|STEPS_TO_QUOTA|SOURCE|PUSH|int"
-    }, "identifier");
-    
-    var escapeRe = /\\(\d+|['"\\&trnbvf])/;
-    
-    var smallRe = /[a-z_]/.source;
-    var largeRe = /[A-Z]/.source;
-    var idRe = /[a-z_A-Z0-9']/.source;
 
     this.$rules = {
-        start: [{
-            token: "string.start",
-            regex: '"',
-            next: "string"
+        "start" : [ {
+            token : "comment.line",
+            regex : "#.*$"
         }, {
-            token: "string.character",
-            regex: "'(?:" + escapeRe.source + "|.)'?"
+            token : "string",           // " string
+            regex : '".*?"'
         }, {
-            regex: /0(?:[xX][0-9A-Fa-f]+|[oO][0-7]+)|\d+(\.\d+)?([eE][-+]?\d*)?/,
-            token: "constant.numeric"
-        }, {
-            token: "comment",
-            regex: "--.*"
+            token : "constant.numeric",
+            regex : "-?[1-9][0-9]*"
         }, {
             token : "keyword",
-            regex : /\.\.|\||:|=|\\|"|->|<-|\u2192/
+            regex : "parameter|return|storage|code"
         }, {
-            token : "keyword.operator",
-            regex : /[-!#$%&*+.\/<=>?@\\^|~:\u03BB\u2192]+/
+            token : "constant.language",
+            regex : "Unit|True|False"
         }, {
-            token : "operator.punctuation",
-            regex : /[,;`]/
-        }, /* {
-            regex : largeRe + idRe + "+\\.?",
-            token : function(value) {
-                if (value[value.length - 1] == ".")
-                    return "entity.name.function"; 
-                return "constant.language"; 
-            }
-        },  {
-            regex : "^" + smallRe  + idRe + "+",
-            token : function(value) {
-                return "constant.language"; 
-            } 
-        }, */ {
-            token : keywordMapper,
-            regex : "[\\w\\xff-\\u218e\\u2455-\\uffff]+\\b"
+            token: "storage.type",
+            regex: "string|nat|int|bool|unit|list|pair|option|or|set|map|tez|timestamp|contract|key|signature"
         }, {
-            regex: "{-#?",
-            token: "comment.start",
-            onMatch: function(value, currentState, stack) {
-                this.next = value.length == 2 ? "blockComment" : "docComment";
-                return this.token;
-            }
+            token: "support.function",
+            regex: "Pair|Left|Right|Some|None|List|Set|Map|DROP|SWAP|PUSH|SOME|NONE|UNIT|IF_NONE|LEFT|RIGHT|IF_LEFT|NIL|CONS|IF_CONS|EMPTY_SET|EMPTY_MAP|MAP|REDUCE|MEM|GET|UPDATE|IF|LOOP|LAMBDA|EXEC|DIP|FAIL|CONCAT|ADD|SUB|MUL|DIV|ABS|NEG|MOD|LSL|LSR|OR|AND|XOR|NOT|COMPARE|MANAGER|SELF|TRANSFER_TOKENS|CREATE_ACCOUNT|CREATE_CONTRACT|NOW|AMOUNT|BALANCE|CHECK_SIGNATURE|H|STEPS_TO_QUOTA|SOURCE"
         }, {
-            token: "variable.language",
-            regex: /\[markdown\|/,
-            next: "markdown"
+            token: "support.function",
+            regex: "DU+P|DI+P|C(A|D)+R|PA+IR"
         }, {
-            token: "paren.lparen",
-            regex: /[\[({]/ 
+            token: "support.function",
+            regex: "(CMP|IF|IFCMP)?(EQ|NEQ|LT|GT|LE|GE)"
         }, {
-            token: "paren.rparen",
-            regex: /[\])}]/
-        } ],
-        markdown: [{
-            regex: /\|\]/,
-            next: "start"
+            token : "identifier",
+            regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
         }, {
-            defaultToken : "string"
-        }],
-        blockComment: [{
-            regex: "{-",
-            token: "comment.start",
-            push: "blockComment"
-        }, {
-            regex: "-}",
-            token: "comment.end",
-            next: "pop"
-        }, {
-            defaultToken: "comment"
-        }],
-        docComment: [{
-            regex: "{-",
-            token: "comment.start",
-            push: "docComment"
-        }, {
-            regex: "-}",
-            token: "comment.end",
-            next: "pop" 
-        }, {
-            defaultToken: "doc.comment"
-        }],
-        string: [{
-            token: "constant.language.escape",
-            regex: escapeRe
-        }, {
-            token: "text",
-            regex: /\\(\s|$)/,
-            next: "stringGap"
-        }, {
-            token: "string.end",
-            regex: '"',
-            next: "start"
-        }, {
-            defaultToken: "string"
-        }],
-        stringGap: [{
-            token: "text",
-            regex: /\\/,
-            next: "string"
-        }, {
-            token: "error",
-            regex: "",
-            next: "start"
-        }]
+            token : "text",
+            regex : "\\s+"
+        } ]
     };
-    
     this.normalizeRules();
 };
 
@@ -136,168 +51,25 @@ oop.inherits(MichelsonHighlightRules, TextHighlightRules);
 exports.MichelsonHighlightRules = MichelsonHighlightRules;
 });
 
-ace.define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module) {
-"use strict";
+ace.define("ace/mode/michelson",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/michelson_highlight_rules"], function(acequire, exports, module) {
 
-var oop = require("../../lib/oop");
-var Range = require("../../range").Range;
-var BaseFoldMode = require("./fold_mode").FoldMode;
-
-var FoldMode = exports.FoldMode = function(commentRegex) {
-    if (commentRegex) {
-        this.foldingStartMarker = new RegExp(
-            this.foldingStartMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.start)
-        );
-        this.foldingStopMarker = new RegExp(
-            this.foldingStopMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.end)
-        );
-    }
-};
-oop.inherits(FoldMode, BaseFoldMode);
-
-(function() {
-    
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
-    this.singleLineBlockCommentRe= /^\s*(\/\*).*\*\/\s*$/;
-    this.tripleStarBlockCommentRe = /^\s*(\/\*\*\*).*\*\/\s*$/;
-    this.startRegionRe = /^\s*(\/\*|\/\/)#?region\b/;
-    this._getFoldWidgetBase = this.getFoldWidget;
-    this.getFoldWidget = function(session, foldStyle, row) {
-        var line = session.getLine(row);
-    
-        if (this.singleLineBlockCommentRe.test(line)) {
-            if (!this.startRegionRe.test(line) && !this.tripleStarBlockCommentRe.test(line))
-                return "";
-        }
-    
-        var fw = this._getFoldWidgetBase(session, foldStyle, row);
-    
-        if (!fw && this.startRegionRe.test(line))
-            return "start"; // lineCommentRegionStart
-    
-        return fw;
-    };
-
-    this.getFoldWidgetRange = function(session, foldStyle, row, forceMultiline) {
-        var line = session.getLine(row);
-        
-        if (this.startRegionRe.test(line))
-            return this.getCommentRegionBlock(session, line, row);
-        
-        var match = line.match(this.foldingStartMarker);
-        if (match) {
-            var i = match.index;
-
-            if (match[1])
-                return this.openingBracketBlock(session, match[1], row, i);
-                
-            var range = session.getCommentFoldRange(row, i + match[0].length, 1);
-            
-            if (range && !range.isMultiLine()) {
-                if (forceMultiline) {
-                    range = this.getSectionRange(session, row);
-                } else if (foldStyle != "all")
-                    range = null;
-            }
-            
-            return range;
-        }
-
-        if (foldStyle === "markbegin")
-            return;
-
-        var match = line.match(this.foldingStopMarker);
-        if (match) {
-            var i = match.index + match[0].length;
-
-            if (match[1])
-                return this.closingBracketBlock(session, match[1], row, i);
-
-            return session.getCommentFoldRange(row, i, -1);
-        }
-    };
-    
-    this.getSectionRange = function(session, row) {
-        var line = session.getLine(row);
-        var startIndent = line.search(/\S/);
-        var startRow = row;
-        var startColumn = line.length;
-        row = row + 1;
-        var endRow = row;
-        var maxRow = session.getLength();
-        while (++row < maxRow) {
-            line = session.getLine(row);
-            var indent = line.search(/\S/);
-            if (indent === -1)
-                continue;
-            if  (startIndent > indent)
-                break;
-            var subRange = this.getFoldWidgetRange(session, "all", row);
-            
-            if (subRange) {
-                if (subRange.start.row <= startRow) {
-                    break;
-                } else if (subRange.isMultiLine()) {
-                    row = subRange.end.row;
-                } else if (startIndent == indent) {
-                    break;
-                }
-            }
-            endRow = row;
-        }
-        
-        return new Range(startRow, startColumn, endRow, session.getLine(endRow).length);
-    };
-    this.getCommentRegionBlock = function(session, line, row) {
-        var startColumn = line.search(/\s*$/);
-        var maxRow = session.getLength();
-        var startRow = row;
-        
-        var re = /^\s*(?:\/\*|\/\/|--)#?(end)?region\b/;
-        var depth = 1;
-        while (++row < maxRow) {
-            line = session.getLine(row);
-            var m = re.exec(line);
-            if (!m) continue;
-            if (m[1]) depth--;
-            else depth++;
-
-            if (!depth) break;
-        }
-
-        var endRow = row;
-        if (endRow > startRow) {
-            return new Range(startRow, startColumn, endRow, line.length);
-        }
-    };
-
-}).call(FoldMode.prototype);
-
-});
-
-ace.define("ace/mode/michelson",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/michelson_highlight_rules","ace/mode/folding/cstyle"], function(require, exports, module) {
-"use strict";
-
-var oop = require("../lib/oop");
-var TextMode = require("./text").Mode;
-var HighlightRules = require("./michelson_highlight_rules").MichelsonHighlightRules;
-var FoldMode = require("./folding/cstyle").FoldMode;
+var oop = acequire("../lib/oop");
+var TextMode = acequire("./text").Mode;
+var MichelsonHighlightRules = acequire("./michelson_highlight_rules").MichelsonHighlightRules;
 
 var Mode = function() {
-    this.HighlightRules = HighlightRules;
-    this.foldingRules = new FoldMode();
+    this.HighlightRules = MichelsonHighlightRules;
     this.$behaviour = this.$defaultBehaviour;
 };
 oop.inherits(Mode, TextMode);
 
 (function() {
-    this.lineCommentStart = ";;";
-    this.blockComment = {start: "{-", end: "-}", nestable: true};
+
+    this.lineCommentStart = "#";
+
     this.$id = "ace/mode/michelson";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
+
 });
-
-
